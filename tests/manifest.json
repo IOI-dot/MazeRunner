@@ -1,0 +1,49 @@
+{
+ "maze": {
+  "core": [
+   {
+    "id": "open",
+    "input": "visible/open.txt",
+    "hidden": false,
+    "check": "exact",
+    "expected": "expected/open.out"
+   },
+   {
+    "id": "block",
+    "input": "visible/block.txt",
+    "hidden": false,
+    "check": "exact",
+    "expected": "expected/block.out"
+   },
+   {
+    "id": "tree",
+    "input": "visible/tree.txt",
+    "hidden": false,
+    "check": "exact",
+    "expected": "expected/tree.out"
+   }
+  ],
+  "full": [
+   {
+    "id": "multi",
+    "input": "visible/multi.txt",
+    "hidden": false,
+    "check": "route_bound",
+    "expected": "expected/multi.json"
+   },
+   {
+    "id": "bus",
+    "input": "visible/bus.txt",
+    "hidden": false,
+    "check": "route_bound",
+    "expected": "expected/bus.json"
+   },
+   {
+    "id": "multi_draw",
+    "input": "visible/multi.txt",
+    "hidden": false,
+    "check": "draw"
+   }
+  ]
+ }
+}

@@ -1,0 +1,4 @@
+# One open net on three layers.  M1 runs east-west only, so changing rows needs M2.
+.grid 8 6
+.via_cost 3
+.net A 1 1 6 4

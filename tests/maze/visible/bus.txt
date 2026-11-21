@@ -1,0 +1,17 @@
+# Nine nets with 2, 3 and 4 pins on a 16 x 12 grid.  Strict file order fails, and the
+# via-spacing rule (DR3) decides where some vias may go.
+.grid 16 12
+.via_cost 2
+.block 2 10 2 11 2
+.block * 8 8 10 9
+.block 2 2 8 2 9
+.block * 10 1 12 2
+.net N1 5 8 4 10 13 7
+.net N2 2 2 0 7 0 5 14 10
+.net N3 0 2 8 1
+.net N4 15 6 12 3 9 6 12 9
+.net N5 7 4 14 3
+.net N6 10 3 6 2 2 6
+.net N7 11 6 4 0
+.net N8 6 0 12 11
+.net N9 10 10 3 8 7 9

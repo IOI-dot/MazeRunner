@@ -1,0 +1,10 @@
+# Six nets with 2, 3 and 4 pins on three layers.  Routing strictly in file order fails
+# (rip-up is needed), and the via-spacing rule (DR3) decides where some vias may go.
+.grid 10 8
+.via_cost 2
+.net N1 4 3 8 4
+.net N2 7 4 3 5
+.net N3 9 2 0 7 0 1
+.net N4 9 1 3 7 7 0
+.net N5 2 2 2 6 1 4 9 3
+.net N6 3 6 6 7

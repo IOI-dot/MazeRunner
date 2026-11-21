@@ -1,0 +1,6 @@
+# One 4-pin net on three layers.  Pins are connected in file order: the tree starts at the
+# first pin and each later pin joins the tree with one branch.
+.grid 10 8
+.via_cost 2
+.block 2 3 2 5 5
+.net T 1 1 8 1 4 6 8 6

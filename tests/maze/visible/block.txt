@@ -1,0 +1,6 @@
+# One net whose M1 row is cut by a block; M2 only runs north-south, so the net climbs to M3.
+.grid 10 7
+.via_cost 2
+.block 1 4 0 4 6
+.block 2 5 2 6 4
+.net B 1 2 8 2
