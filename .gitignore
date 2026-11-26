@@ -1,0 +1,15 @@
+# Python files created when running the code
+__pycache__/
+*.py[cod]
+
+# Local Python environments
+.venv/
+venv/
+env/
+
+# Local PyCharm settings
+.idea/
+
+# Operating system files
+.DS_Store
+Thumbs.db

@@ -1,4 +1,5 @@
 import argparse
+import heapq
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -124,7 +125,6 @@ def read_input(filename):
 
 def legal_moves(grid, point):
     # Check layer directions, boundaries and blocks.
-    # Net occupancy and via spacing are not checked here.
     if not inside_grid(grid, point) or point in grid.blocked:
         return []
 
@@ -154,6 +154,133 @@ def legal_moves(grid, point):
     return moves
 
 
+def routing_moves(grid, point, forbidden, via_keepout):
+    # Keep other nets and unconnected pins out of the branch.
+    moves = []
+    for neighbour, cost in legal_moves(grid, point):
+        if neighbour in forbidden:
+            continue
+
+        # Check spacing only for vias on the same layer cut.
+        if point[2] != neighbour[2]:
+            cut = min(point[2], neighbour[2])
+            if (point[0], point[1], cut) in via_keepout:
+                continue
+
+        moves.append((neighbour, cost))
+    return moves
+
+
+def search(grid, tree, forbidden, via_keepout):
+    # Every point in the existing tree starts with cost zero.
+    labels = {point: 0 for point in tree}
+    queue = [(0, point) for point in tree]
+    heapq.heapify(queue)
+
+    # Label every reachable point using Dijkstra's algorithm.
+    while queue:
+        distance, point = heapq.heappop(queue)
+        if distance != labels[point]:
+            continue
+
+        for neighbour, cost in routing_moves(grid, point, forbidden, via_keepout):
+            new_distance = distance + cost
+            if new_distance < labels.get(neighbour, float("inf")):
+                labels[neighbour] = new_distance
+                heapq.heappush(queue, (new_distance, neighbour))
+
+    return labels
+
+
+def traceback(grid, target, labels, forbidden, via_keepout):
+    branch = [target]
+    point = target
+
+    # Follow decreasing labels until the existing tree is reached.
+    while labels[point] != 0:
+        for neighbour, cost in routing_moves(grid, point, forbidden, via_keepout):
+            if neighbour in labels and labels[neighbour] + cost == labels[point]:
+                branch.append(neighbour)
+                point = neighbour
+                break
+        else:
+            raise ValueError("Traceback could not reach the existing tree.")
+
+    # Output runs from the tree to the new pin.
+    branch.reverse()
+    return branch
+
+
+def route_nets(grid):
+    routes = []
+    occupied = set()
+    via_keepout = set()
+    pin_owners = {}
+    for net in grid.nets:
+        for pin in net.pins:
+            pin_owners[pin] = net.name
+
+    # Route nets and their pins in file order.
+    for net in grid.nets:
+        tree = {net.pins[0]}
+        connected = {net.pins[0]}
+        branches = []
+        other_pins = {pin for pin, owner in pin_owners.items() if owner != net.name}
+
+        for target in net.pins[1:]:
+            # Only the current target may be entered before it is connected.
+            future_pins = set(net.pins) - connected - {target}
+            forbidden = occupied | other_pins | future_pins
+            labels = search(grid, tree, forbidden, via_keepout)
+            if target not in labels:
+                raise ValueError(f"No route found for net {net.name} to pin {target}.")
+
+            branch = traceback(grid, target, labels, forbidden, via_keepout)
+            branches.append(branch)
+            tree.update(branch)
+            connected.add(target)
+
+        occupied.update(tree)
+        routes.append((net.name, branches))
+
+        # Reserve neighbouring via positions for the following nets.
+        # Vias of the same net may be close together or stacked.
+        for branch in branches:
+            for start, end in zip(branch, branch[1:]):
+                if start[2] != end[2]:
+                    x, y = start[:2]
+                    cut = min(start[2], end[2])
+                    for dx in (-1, 0, 1):
+                        for dy in (-1, 0, 1):
+                            via_keepout.add((x + dx, y + dy, cut))
+
+    return routes
+
+
+def format_routes(routes):
+    # Count wire steps and vias separately for each net.
+    lines = []
+    for name, branches in routes:
+        wirelength = 0
+        vias = 0
+        lines.append(f"NET {name}")
+
+        for branch in branches:
+            lines.append("BRANCH")
+            for x, y, layer in branch:
+                lines.append(f"{x} {y} {layer}")
+            for start, end in zip(branch, branch[1:]):
+                if start[2] == end[2]:
+                    wirelength += 1
+                else:
+                    vias += 1
+
+        lines.append("END")
+        lines.append(f"WL {wirelength} VIAS {vias}")
+
+    return "\n".join(lines)
+
+
 def show_summary(grid):
     # Display the input summary.
     print(f"Grid: {grid.width} x {grid.height}, 3 layers")
@@ -177,7 +304,7 @@ def main():
     moves_command.add_argument("y", type=int)
     moves_command.add_argument("layer", type=int, choices=(1, 2, 3))
 
-    route_command = commands.add_parser("route", help="Reserved for the routing solver")
+    route_command = commands.add_parser("route", help="Route nets and print their branches")
     route_command.add_argument("file")
     args = parser.parse_args()
 
@@ -193,9 +320,8 @@ def main():
                 x, y, layer = neighbour
                 print(f"{x} {y} {layer} COST {cost}")
         else:
-            # Routing search is not implemented yet.
-            raise NotImplementedError("Routing is not implemented yet. Use inspect or moves.")
-    except (OSError, ValueError, NotImplementedError) as error:
+            print(format_routes(route_nets(grid)))
+    except (OSError, ValueError) as error:
         print(f"Error: {error}", file=sys.stderr)
         return 1
 
